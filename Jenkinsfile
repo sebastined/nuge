@@ -132,7 +132,7 @@ spec:
           sh '''
             echo "Deploying ${APP_NAME}:${TAG} to ${K8S_NAMESPACE}..."
 
-            # Apply deployment
+            # Apply deployment (includes imagePullSecrets for Harbor)
             kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -148,6 +148,8 @@ spec:
       labels:
         app: ${APP_NAME}
     spec:
+      imagePullSecrets:
+        - name: harbor-creds
       containers:
       - name: ${APP_NAME}-container
         image: ${IMAGE_NAME}:${TAG}
@@ -155,6 +157,7 @@ spec:
         - containerPort: 8080
 EOF
 
+            # Wait for rollout (keep this to fail fast if pod doesn't become ready)
             kubectl -n ${K8S_NAMESPACE} rollout status deployment/${APP_NAME}-deploy --timeout=120s
 
             # Apply service
@@ -203,7 +206,8 @@ EOF
         }
       }
     }
-  }  // ✅ closes stages block
+
+  }
 
   post {
     success {
