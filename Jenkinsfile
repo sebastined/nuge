@@ -166,7 +166,8 @@ kind: Ingress
 metadata:
   name: ${APP_NAME}-ing
   annotations:
-    kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
 spec:
   tls:
   - hosts:
