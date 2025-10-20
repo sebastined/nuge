@@ -127,13 +127,13 @@ spec:
     }
 
     stage('Deploy & Expose in Kubernetes') {
-  steps {
-    container('kubectl') {
-      sh '''
-        echo "Deploying ${APP_NAME}:${TAG} to ${K8S_NAMESPACE}..."
+      steps {
+        container('kubectl') {
+          sh '''
+            echo "Deploying ${APP_NAME}:${TAG} to ${K8S_NAMESPACE}..."
 
-        # Apply deployment (idempotent, ensures pod labels match service)
-        kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
+            # Apply deployment
+            kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -155,11 +155,10 @@ spec:
         - containerPort: 8080
 EOF
 
-        # Wait for rollout
-        kubectl -n ${K8S_NAMESPACE} rollout status deployment/${APP_NAME}-deploy --timeout=120s
+            kubectl -n ${K8S_NAMESPACE} rollout status deployment/${APP_NAME}-deploy --timeout=120s
 
-        # Apply service (idempotent)
-        kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
+            # Apply service
+            kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -173,8 +172,8 @@ spec:
   type: ClusterIP
 EOF
 
-        # Apply ingress (Traefik-compatible)
-        kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
+            # Apply ingress
+            kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -200,11 +199,12 @@ spec:
             port:
               number: 8080
 EOF
-      '''
+          '''
+        }
+      }
     }
-  }
-}
-    
+  }  // ✅ closes stages block
+
   post {
     success {
       echo "✅ Successfully deployed ${APP_NAME}:${TAG}"
