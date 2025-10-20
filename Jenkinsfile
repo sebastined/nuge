@@ -126,29 +126,40 @@ spec:
       }
     }
 
-    stage('Deploy to Kubernetes') {
-      steps {
-        container('kubectl') {
-          sh '''
-            echo "Deploying ${APP_NAME}:${TAG} to ${K8S_NAMESPACE}..."
-            kubectl -n ${K8S_NAMESPACE} set image deployment/${APP_NAME}-deploy ${APP_NAME}-container=${IMAGE_NAME}:${TAG} || \
-              kubectl -n ${K8S_NAMESPACE} create deployment ${APP_NAME}-deploy --image=${IMAGE_NAME}:${TAG}
+    stage('Deploy & Expose in Kubernetes') {
+  steps {
+    container('kubectl') {
+      sh '''
+        echo "Deploying ${APP_NAME}:${TAG} to ${K8S_NAMESPACE}..."
 
-            kubectl -n ${K8S_NAMESPACE} rollout status deployment/${APP_NAME}-deploy --timeout=120s || true
+        # Apply deployment (idempotent, ensures pod labels match service)
+        kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+    spec:
+      containers:
+      - name: ${APP_NAME}-container
+        image: ${IMAGE_NAME}:${TAG}
+        ports:
+        - containerPort: 8080
+EOF
 
-            kubectl -n ${K8S_NAMESPACE} expose deployment ${APP_NAME}-deploy \
-              --port=8080 --type=ClusterIP --dry-run=client -o yaml | kubectl apply -f -
-          '''
-        }
-      }
-    }
+        # Wait for rollout
+        kubectl -n ${K8S_NAMESPACE} rollout status deployment/${APP_NAME}-deploy --timeout=120s
 
-    stage('Expose via Service & Ingress') {
-      steps {
-        container('kubectl') {
-          sh '''
-            echo "Creating ClusterIP service and Ingress for ${APP_NAME}..."
-            cat <<EOF | kubectl apply -n ${K8S_NAMESPACE} -f -
+        # Apply service (idempotent)
+        kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -160,7 +171,10 @@ spec:
     - port: 8080
       targetPort: 8080
   type: ClusterIP
----
+EOF
+
+        # Apply ingress (Traefik-compatible)
+        kubectl apply -n ${K8S_NAMESPACE} -f - <<EOF
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -169,6 +183,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
 spec:
+  ingressClassName: traefik
   tls:
   - hosts:
       - ${APP_NAME}.int.sebastine.ng
@@ -185,12 +200,11 @@ spec:
             port:
               number: 8080
 EOF
-          '''
-        }
-      }
+      '''
     }
   }
-
+}
+    
   post {
     success {
       echo "✅ Successfully deployed ${APP_NAME}:${TAG}"
