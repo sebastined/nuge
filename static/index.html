@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Number Generator</title>
+  <style>
+    :root {
+      --bg-color: #f5f5f5;
+      --text-color: #333;
+      --card-bg: white;
+      --button-bg: #0078d7;
+      --button-hover: #005fa3;
+      --shadow: rgba(0,0,0,0.1);
+      --footer-bg: #f0f0f0;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --card-bg: #1e1e1e;
+      --button-bg: #2196f3;
+      --button-hover: #1565c0;
+      --shadow: rgba(255,255,255,0.1);
+      --footer-bg: #1a1a1a;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+      margin: 0;
+      padding-bottom: 60px; /* space for footer */
+    }
+
+    h1 {
+      color: var(--text-color);
+      margin-bottom: 20px;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      cursor: pointer;
+      background: var(--card-bg);
+      border: 1px solid var(--shadow);
+      border-radius: 20px;
+      padding: 6px 12px;
+      box-shadow: 0 0 8px var(--shadow);
+      color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    form {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px var(--shadow);
+      margin-bottom: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    input {
+      margin: 5px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background: var(--button-bg);
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: var(--button-hover);
+    }
+
+    #result {
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px var(--shadow);
+      width: 300px;
+      text-align: center;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: var(--footer-bg);
+      color: var(--text-color);
+      text-align: center;
+      padding: 10px 0;
+      font-size: 0.9em;
+      border-top: 1px solid var(--shadow);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    footer a {
+      color: var(--button-bg);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle">🌙 Dark</button>
+
+  <h1>Random Number Generator</h1>
+  <form id="rng-form">
+    <input type="number" id="min" placeholder="Min" />
+    <input type="number" id="max" placeholder="Max" />
+    <input type="number" id="count" placeholder="Count" value="5" />
+    <button type="submit">Generate</button>
+  </form>
+
+  <div id="result">Enter range and press Generate</div>
+
+  <footer>
+    © <span id="year"></span> Designed by <strong>Sebastine Nnanemere</strong> & ChatGPT
+  </footer>
+
+  <script>
+    // --- Theme toggle ---
+    const toggleBtn = document.getElementById("themeToggle");
+    const currentTheme = localStorage.getItem("theme") || "light";
+    if (currentTheme === "dark") {
+      document.body.classList.add("dark");
+      toggleBtn.textContent = "☀️ Light";
+    }
+
+    toggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.contains("dark");
+      toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+
+    // --- Random number generator ---
+    document.getElementById("rng-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const min = document.getElementById("min").value || '';
+      const max = document.getElementById("max").value || '';
+      const count = document.getElementById("count").value || 1;
+
+      const url = `/api/random?min=${min}&max=${max}&count=${count}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const result = document.getElementById("result");
+      if (Array.isArray(data)) {
+        result.innerHTML = `<b>Random Numbers:</b><br>${data.join(', ')}`;
+      } else if (data.error) {
+        result.innerHTML = `<b style="color:red;">Error:</b> ${data.error}`;
+      }
+    });
+
+    // --- Footer year ---
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
