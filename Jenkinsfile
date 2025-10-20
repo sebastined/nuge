@@ -1,9 +1,3 @@
-
----
-
-## ⚙️ `Jenkinsfile` (Kaniko build version)
-
-```groovy
 pipeline {
   agent {
     kubernetes {
