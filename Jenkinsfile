@@ -67,7 +67,7 @@ spec:
     REGISTRY         = "harbor.int.sebastine.ng/900"
     IMAGE_NAME       = "${REGISTRY}/${APP_NAME}"
     TAG              = "${BUILD_NUMBER}"
-    K8S_NAMESPACE    = "prod00"
+    K8S_NAMESPACE    = "dev00"
     SONAR_URL        = "http://sonar.int.sebastine.ng"
     SONARQUBE        = "SonarQube"
     SONAR_AUTH_TOKEN = credentials('sonarqube')
